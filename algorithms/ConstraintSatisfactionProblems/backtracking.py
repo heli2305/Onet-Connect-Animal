@@ -22,7 +22,7 @@ bớt domain trước khi thử). Đây chính là động lực dẫn đến AC
 """
 
 from algorithms.base import SearchLogger
-from algorithms.csp.csp_problem import PikachuCSP
+from algorithms.ConstraintSatisfactionProblems.csp_problem import PikachuCSP
 from game.board import Board
 
 

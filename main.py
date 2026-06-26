@@ -28,8 +28,8 @@ sys.path.insert(0, ".")
 from game.state import make_initial_state
 from game.rules import find_path
 from game.visualizer import Visualizer, cell_rect, SCREEN_W, SCREEN_H, LEFT_W, RIGHT_W, BOARD_H
-from algorithms.informed.astar import astar
-from algorithms.csp.backtracking import backtracking_search
+from algorithms.InformedSearchAlgorithms.astar import astar
+from algorithms.ConstraintSatisfactionProblems.backtracking import backtracking_search
 
 # ─────────────────────────────────────────────
 # DANH SÁCH THUẬT TOÁN
