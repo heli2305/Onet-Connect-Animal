@@ -110,7 +110,8 @@ class Visualizer:
         # --- NẠP ẢNH PNG TỪ THƯ MỤC ASSETS ---
         import os
         self.animal_images = {}
-        self.assets_dir = "game/assets/icons_png"
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.assets_dir = os.path.join(current_dir, "assets", "icons_png")
         self.use_images = os.path.exists(self.assets_dir)
 
         if self.use_images:
