@@ -1,21 +1,9 @@
-"""
-main.py - Giao diện chính game Nối Thú (Pikachu)
-=================================================
-Chỉ dùng: pygame + các file game/ và algorithms/ của dự án.
-Layout 4 vùng:
-  - Trái  : nút chọn thuật toán
-  - Giữa trên : bàn cờ
-  - Giữa dưới : kết quả chạy
-  - Phải  : log từng bước
-"""
-
 import sys
 import threading
 import ctypes
 
-# Kích hoạt chế độ DPI-aware cho Windows
 try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(2) # PROCESS_PER_MONITOR_DPI_AWARE
+    ctypes.windll.shcore.SetProcessDpiAwareness(2)
 except Exception:
     try:
         ctypes.windll.user32.SetProcessDPIAware()
@@ -27,55 +15,55 @@ import pygame
 sys.path.insert(0, ".")
 from game.state import make_initial_state
 from game.rules import find_path
-from game.visualizer import Visualizer, cell_rect, SCREEN_W, SCREEN_H, LEFT_W, RIGHT_W, BOARD_H
+from game.visualizer import Visualizer, cell_rect, SCREEN_W, SCREEN_H, LEFT_W, RIGHT_W, BOARD_H, LOG_LINE_H
 from algorithms.InformedSearchAlgorithms.astar import astar
+from algorithms.UninformedSearchAlgorithms.bfs import bfs
 from algorithms.ConstraintSatisfactionProblems.backtracking import backtracking_search
 
-# ─────────────────────────────────────────────
 # DANH SÁCH THUẬT TOÁN
-# mỗi phần tử: (tên hiển thị, hàm gọi)
-# Khi implement xong 1 thuật toán thì thêm vào đây
-# ─────────────────────────────────────────────
+
+def run_bfs(state):
+    return bfs(state)
+
 def run_astar(state):
     return astar(state)
 
 def run_backtracking(state):
     return backtracking_search(state.board)
 
-# Placeholder cho các thuật toán chưa implement
-def chua_implement(state):
-    from algorithms.base import SearchLogger
-    logger = SearchLogger("Chưa implement")
-    logger.log("Thuật toán này chưa được code.")
-    logger.log("Tạm thời dùng A* thay thế.")
-    return astar(state)
-
-ALGORITHMS = [
-    # (tên,                  hàm chạy)
-    # Uninformed Search
-    ("BFS",                  chua_implement),
-    ("UCS",                  chua_implement),
-    # Informed Search
-    ("A* Search",            run_astar),
-    ("Greedy",               chua_implement),
-    # Local Search
-    ("Hill-Climbing",        chua_implement),
-    ("Sim. Annealing",       chua_implement),
-    # Complicated Search
-    ("AND-OR Search",        chua_implement),
-    ("Partial Observable",   chua_implement),
-    # CSP
-    ("Backtracking (CSP)",   run_backtracking),
-    ("AC-3",                 chua_implement),
-    # Đối kháng
-    ("Minimax",              chua_implement),
-    ("Alpha-Beta",           chua_implement),
+ALGO_GROUPS = [
+    {
+        "name": "Uninformed search",
+        "algos": [
+            {"name": "BFS", "func": run_bfs}
+        ]
+    },
+    {
+        "name": "Informed search",
+        "algos": [
+            {"name": "A* Search", "func": run_astar}
+        ]
+    },
+    {
+        "name": "Local search",
+        "algos": []
+    },
+    {
+        "name": "Searching in complex environments",
+        "algos": []
+    },
+    {
+        "name": "Constraint satisfaction problems",
+        "algos": [
+            {"name": "Backtracking (CSP)", "func": run_backtracking}
+        ]
+    },
+    {
+        "name": "Adversarial search",
+        "algos": []
+    }
 ]
 
-
-# ─────────────────────────────────────────────
-# VÒNG LẶP CHÍNH
-# ─────────────────────────────────────────────
 def main():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
@@ -84,34 +72,34 @@ def main():
 
     viz = Visualizer()
 
-    # ── Trạng thái game ──────────────────────────────────────────
     seed  = 42
     state = make_initial_state(rows=6, cols=6, seed=seed)
 
-    selected_cell = None     # ô người chơi đang chọn, dạng (r, c)
-    path_cells    = []       # danh sách ô trên đường nối đang hiển thị
-    path_countdown = 0       # đếm ngược frame để ẩn đường nối
-    path_animal_id = 0       # loại thú đang hiển thị đường nối
+    selected_cell = None     
+    path_cells    = []       
+    path_countdown = 0       
+    path_animal_id = 0       
 
-    # ── Trạng thái thuật toán ─────────────────────────────────────
-    selected_algo = 0        # index thuật toán đang chọn
-    is_running    = False    # đang chạy thuật toán hay không
-    result        = None     # SearchResult sau khi chạy xong
-    is_analysis_mode = False # Đang ở chế độ phân tích hay không
-    analysis_step    = 0     # Bước phân tích hiện tại
-    search_start_idx = 0     # Vị trí dòng log bắt đầu thuật toán
+    # Trạng thái thuật toán 
+    selected_group_idx = 0
+    selected_algo_idx  = 0
+    opened_group       = 0
+    is_running         = False    
+    result        = None     
+    is_analysis_mode = False 
+    analysis_step    = 0     
+    search_start_idx = 0     
 
-    # ── Log panel phải ────────────────────────────────────────────
+    # Log
     log_lines  = ["Chọn thuật toán và nhấn [Chạy AI]."]
-    log_scroll = 0           # số dòng đã cuộn
+    log_scroll = 0          
 
-    # ── Queue animation auto-solve ────────────────────────────────
-    anim_queue   = []        # list action chờ thực hiện
-    anim_timer   = 0         # đếm frame giữa 2 bước animation
-    ANIM_DELAY   = 30        # số frame giữa 2 bước (30 frame ≈ 0.5 giây)
+    # Queue animation
+    anim_queue   = []        
+    anim_timer   = 0         
+    ANIM_DELAY   = 30        
 
     def new_game(next_seed=False):
-        """Reset về bàn mới."""
         nonlocal state, selected_cell, path_cells, path_countdown, seed, path_animal_id
         nonlocal result, anim_queue, anim_timer, log_lines, log_scroll
         nonlocal is_analysis_mode, analysis_step
@@ -131,7 +119,6 @@ def main():
         analysis_step    = 0
 
     def stop_search():
-        """Dừng việc tìm kiếm và hoạt ảnh."""
         nonlocal anim_queue, path_cells, result, log_lines, is_running
         anim_queue = []
         path_cells = []
@@ -140,11 +127,12 @@ def main():
         log_lines.append("Đã dừng hoạt ảnh / tìm kiếm.")
 
     def start_algorithm():
-        """Chạy thuật toán trong thread riêng (không đơ UI)."""
         nonlocal is_running, result, anim_queue, log_lines, log_scroll
         nonlocal is_analysis_mode, analysis_step, search_start_idx
 
-        name, func = ALGORITHMS[selected_algo]
+        algo = ALGO_GROUPS[selected_group_idx]["algos"][selected_algo_idx]
+        name = algo["name"]
+        func = algo["func"]
         log_lines.append(f"Bắt đầu: {name}")
         is_running = True
         is_analysis_mode = False
@@ -155,10 +143,10 @@ def main():
             nonlocal result, anim_queue, log_lines, log_scroll, is_running
             r = func(state)
             result = r
-            # Ghi log vào panel phải
+
             for msg in r.log_messages:
                 log_lines.append(msg)
-            log_scroll = max(0, len(log_lines) - ((SCREEN_H - 80) // 15))
+            log_scroll = max(0, len(log_lines) - ((SCREEN_H - 100) // LOG_LINE_H))
             if r.success:
                 log_lines.append(f"Xong! Cost={r.cost}, Nodes={r.expanded_nodes}")
                 anim_queue = list(r.actions)
@@ -168,13 +156,10 @@ def main():
 
         threading.Thread(target=worker, daemon=True).start()
 
-    # ─────────────────────────────────────────────────────────────
-    # VÒNG LẶP CHÍNH
-    # ─────────────────────────────────────────────────────────────
+
     while True:
         clock.tick(60)
 
-        # ── Xử lý sự kiện ────────────────────────────────────────
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
@@ -199,7 +184,6 @@ def main():
                 if event.key == pygame.K_s:
                     stop_search()
 
-            # Cuộn chuột trên panel log
             if event.type == pygame.MOUSEWHEEL:
                 mx, _ = pygame.mouse.get_pos()
                 if mx > SCREEN_W - RIGHT_W:
@@ -208,48 +192,61 @@ def main():
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mx, my = event.pos
 
-                # --- Click chọn thuật toán (panel trái) ---
                 if mx < LEFT_W:
-                    y = 32
-                    for i, (name, _) in enumerate(ALGORITHMS):
-                        btn = pygame.Rect(5, y, LEFT_W - 10, 30)
-                        if btn.collidepoint(mx, my):
-                            selected_algo = i
-                            log_lines.append(f"Chọn: {name}")
+                    y = 48
+                    clicked_item = False
+                    for g_idx, group in enumerate(ALGO_GROUPS):
+                        header_rect = pygame.Rect(5, y, LEFT_W - 10, 36)
+                        if header_rect.collidepoint(mx, my):
+                            if opened_group == g_idx:
+                                opened_group = None
+                            else:
+                                opened_group = g_idx
+                            clicked_item = True
                             break
-                        y += 33
+                        
+                        y += 40
+                        if opened_group == g_idx:
+                            if not group["algos"]:
+                                y += 24
+                            else:
+                                for a_idx, algo in enumerate(group["algos"]):
+                                    item_rect = pygame.Rect(20, y, LEFT_W - 25, 30)
+                                    if item_rect.collidepoint(mx, my):
+                                        selected_group_idx = g_idx
+                                        selected_algo_idx = a_idx
+                                        log_lines.append(f"Chọn: {algo['name']}")
+                                        clicked_item = True
+                                        break
+                                    y += 34
+                            if clicked_item:
+                                break
 
-                # --- Click nút [Chạy AI] ---
-                btn_run = pygame.Rect(5, SCREEN_H - 118, LEFT_W - 10, 34)
+                btn_run = pygame.Rect(5, SCREEN_H - 158, LEFT_W - 10, 38)
                 if btn_run.collidepoint(mx, my) and not is_running:
                     new_game(next_seed=False)
                     start_algorithm()
 
-                # --- Click nút [Bàn mới] ---
-                btn_new = pygame.Rect(5, SCREEN_H - 78, LEFT_W - 10, 30)
+                btn_new = pygame.Rect(5, SCREEN_H - 108, LEFT_W - 10, 38)
                 if btn_new.collidepoint(mx, my):
                     new_game(next_seed=True)
 
-                # --- Click nút [Dừng] ---
-                btn_stop = pygame.Rect(5, SCREEN_H - 42, LEFT_W - 10, 30)
+                btn_stop = pygame.Rect(5, SCREEN_H - 58, LEFT_W - 10, 38)
                 if btn_stop.collidepoint(mx, my):
                     stop_search()
 
-                # --- Click nút [Chế độ Phân tích] ---
-                btn_mode = pygame.Rect(5, 460, LEFT_W - 10, 30)
+                btn_mode = pygame.Rect(5, 520, LEFT_W - 10, 34)
                 if btn_mode.collidepoint(mx, my) and result and hasattr(result, "search_steps") and result.search_steps:
                     is_analysis_mode = not is_analysis_mode
 
-                # --- Click các nút điều hướng phân tích [Trước] / [Sau] ---
                 if is_analysis_mode and result and hasattr(result, "search_steps") and result.search_steps:
-                    btn_prev = pygame.Rect(5, 535, (LEFT_W - 10) // 2 - 2, 28)
-                    btn_next = pygame.Rect(5 + (LEFT_W - 10) // 2 + 2, 535, (LEFT_W - 10) // 2 - 2, 28)
+                    btn_prev = pygame.Rect(5, 600, (LEFT_W - 10) // 2 - 2, 32)
+                    btn_next = pygame.Rect(5 + (LEFT_W - 10) // 2 + 2, 600, (LEFT_W - 10) // 2 - 2, 32)
                     if btn_prev.collidepoint(mx, my):
                         analysis_step = max(0, analysis_step - 1)
                     elif btn_next.collidepoint(mx, my):
                         analysis_step = min(len(result.search_steps) - 1, analysis_step + 1)
 
-                # --- Click ô bàn cờ (chế độ tự chơi) ---
                 if LEFT_W < mx < SCREEN_W - RIGHT_W and my < BOARD_H:
                     if not is_running and not anim_queue:
                         board = state.board
@@ -279,7 +276,6 @@ def main():
                                         else:
                                             selected_cell = (r, c)
 
-        # ── Cập nhật animation ────────────────────────────────────
         if path_countdown > 0:
             path_countdown -= 1
             if path_countdown == 0:
@@ -300,7 +296,6 @@ def main():
                         path_animal_id = state.board.get(r1, c1)
                     state = state.apply_action(action)
 
-        # ── Chuẩn bị trạng thái hiển thị (Chế độ Phân tích) ──
         display_state = state
         active_log_idx = None
         if is_analysis_mode and result and hasattr(result, "search_steps") and result.search_steps:
@@ -309,11 +304,10 @@ def main():
                 from game.state import GameState
                 display_state = GameState(snapshot_board)
             active_log_idx = search_start_idx + analysis_step
-            # Tự động cuộn để dòng log đang xét nằm chính giữa
-            visible_lines = (SCREEN_H - 80) // 15
+            visible_lines = (SCREEN_H - 100) // LOG_LINE_H
             log_scroll = max(0, active_log_idx - visible_lines // 2)
 
-        # ── VẼ ───────────────────────────────────────────────────
+
         viz.draw(
             screen,
             display_state,
@@ -323,19 +317,18 @@ def main():
             result,
             log_lines,
             log_scroll,
-            ALGORITHMS,
-            selected_algo,
+            ALGO_GROUPS,
+            selected_group_idx,
+            selected_algo_idx,
+            opened_group,
             is_running,
             is_analysis_mode=is_analysis_mode,
             analysis_step=analysis_step,
             active_log_idx=active_log_idx
         )
 
-        # ════════════════════════════════════════════════════
         pygame.display.flip()
 
 
 if __name__ == "__main__":
-    # Cần dùng biến seed có thể thay đổi → dùng list 1 phần tử
-    # (cách đơn giản nhất trong Python để sửa biến từ trong hàm lồng)
     main()

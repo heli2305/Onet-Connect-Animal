@@ -1,74 +1,49 @@
-from collections import deque
+def is_empty(board, r, c):
+    if r in (-1, board.rows) or c in (-1, board.cols):
+        return True
+    return 0 <= r < board.rows and 0 <= c < board.cols and board.is_empty(r, c)
+
+def get_line(board, r1, c1, r2, c2):
+    if r1 == r2:
+        step = 1 if c1 <= c2 else -1
+        path = [(r1, c) for c in range(c1, c2 + step, step)]
+        if all(is_empty(board, r, c) for r, c in path[1:-1]):
+            return path
+    elif c1 == c2:
+        step = 1 if r1 <= r2 else -1
+        path = [(r, c1) for r in range(r1, r2 + step, step)]
+        if all(is_empty(board, r, c) for r, c in path[1:-1]):
+            return path
+    return None
 
 def find_path(board, r1, c1, r2, c2):
-    """
-    Tìm đường nối hợp lệ từ (r1,c1) đến (r2,c2).
-    Điều kiện:
-      - Hai ô phải cùng loại thú
-      - Đường đi không quá 2 lần rẽ
-      - Không đi qua ô có thú (trừ điểm đích)
-    Trả về: list các tọa độ [(r,c),...] nếu tìm được, None nếu không.
-    """
-    if board.get(r1, c1) != board.get(r2, c2):
-        return None
-    if board.get(r1, c1) == 0:
+    if board.get(r1, c1) != board.get(r2, c2) or board.get(r1, c1) == 0:
         return None
 
-    rows, cols = board.rows, board.cols
-    DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    p = get_line(board, r1, c1, r2, c2)
+    if p: return p
 
-    # State: (r, c, direction_index, num_turns, path)
-    # direction_index = -1 nghĩa là chưa có hướng nào
-    queue = deque()
-    queue.append((r1, c1, -1, 0, [(r1, c1)]))
+    for cr, cc in [(r1, c2), (r2, c1)]:
+        if is_empty(board, cr, cc):
+            p1, p2 = get_line(board, r1, c1, cr, cc), get_line(board, cr, cc, r2, c2)
+            if p1 and p2:
+                return p1[:-1] + p2
 
-    # visited: (r, c, dir, turns) để tránh lặp
-    visited = set()
+    for c in range(-1, board.cols + 1):
+        if all(is_empty(board, r, c) for r in (r1, r2) if (r, c) not in [(r1, c1), (r2, c2)]):
+            p1, p2, p3 = get_line(board, r1, c1, r1, c), get_line(board, r1, c, r2, c), get_line(board, r2, c, r2, c2)
+            if p1 and p2 and p3:
+                return p1[:-1] + p2[:-1] + p3
 
-    while queue:
-        r, c, cur_dir, turns, path = queue.popleft()
+    for r in range(-1, board.rows + 1):
+        if all(is_empty(board, r, c) for c in (c1, c2) if (r, c) not in [(r1, c1), (r2, c2)]):
+            p1, p2, p3 = get_line(board, r1, c1, r, c1), get_line(board, r, c1, r, c2), get_line(board, r, c2, r2, c2)
+            if p1 and p2 and p3:
+                return p1[:-1] + p2[:-1] + p3
 
-        state = (r, c, cur_dir, turns)
-        if state in visited:
-            continue
-        visited.add(state)
-
-        # Đến đích rồi
-        if r == r2 and c == c2:
-            return path
-
-        # Đã quá 2 rẽ → bỏ qua
-        if turns > 2:
-            continue
-
-        for i, (dr, dc) in enumerate(DIRS):
-            nr, nc = r + dr, c + dc
-
-            # Kiểm tra biên (cho phép đi ra ngoài rìa tối đa 1 ô)
-            if not (-1 <= nr <= rows and -1 <= nc <= cols):
-                continue
-
-            # Tính số rẽ mới
-            new_turns = turns
-            if cur_dir != -1 and cur_dir != i:
-                new_turns += 1
-
-            if new_turns > 2:
-                continue
-
-            # Ô đích: luôn được đi đến
-            if nr == r2 and nc == c2:
-                queue.append((nr, nc, i, new_turns, path + [(nr, nc)]))
-                continue
-
-            # Ô trống (hoặc ô ngoài rìa): mới được đi qua
-            is_outside = (nr == -1 or nr == rows or nc == -1 or nc == cols)
-            if is_outside or board.is_empty(nr, nc):
-                queue.append((nr, nc, i, new_turns, path + [(nr, nc)]))
-
-    return None  # Không tìm được đường
-
+    return None
 
 def can_connect(board, r1, c1, r2, c2):
-    """Kiểm tra nhanh có thể nối được không (không cần trả về path)."""
     return find_path(board, r1, c1, r2, c2) is not None
+
+

@@ -1,22 +1,7 @@
-"""
-board.py
---------
-Quản lý bàn cờ game nối thú (kiểu Pikachu).
-
-board[r][c] = 0   -> ô trống (đã bị xóa hoặc chưa có thú)
-board[r][c] > 0   -> loại thú số (1..N), số này được map sang
-                     tên 1 loài vật cụ thể để vẽ icon (xem ANIMAL_NAMES).
-
-Đây là phần code NỀN, dùng chung cho toàn bộ 12 thuật toán trong đồ án.
-Cố tình giữ đơn giản (numpy 2D, không dùng cấu trúc dữ liệu phức tạp)
-để dễ giải thích trong báo cáo / lúc bảo vệ.
-"""
-
 import numpy as np
 import random
 
-# 18 loại thú có icon sẵn trong game/assets/icons_png/
-# Số thứ tự (1..18) sẽ được dùng làm "mã loại thú" trên board.
+
 ANIMAL_NAMES = [
     "buffalo", "chicken", "cow", "dog", "duck", "elephant", "frog", "giraffe",
     "gorilla", "monkey", "narwhal", "owl", "parrot", "penguin", "pig", "rabbit",
@@ -25,14 +10,8 @@ ANIMAL_NAMES = [
 
 
 class Board:
-    """Quản lý bàn cờ game nối thú."""
 
     def __init__(self, rows=6, cols=6, seed=None):
-        """
-        rows, cols: kích thước bàn cờ. rows*cols PHẢI là số chẵn.
-        seed: cố định random để demo lại được đúng 1 bàn cờ (tái lập kết quả
-              khi so sánh các thuật toán với nhau).
-        """
         assert (rows * cols) % 2 == 0, "Số ô trên bàn phải là số chẵn"
         self.rows = rows
         self.cols = cols
@@ -79,7 +58,6 @@ class Board:
 
     @staticmethod
     def animal_name(type_id: int) -> str:
-        """Trả về tên loài thú (str) ứng với 1 mã số trên board. 0 -> None."""
         if type_id == 0:
             return None
         return ANIMAL_NAMES[(type_id - 1) % len(ANIMAL_NAMES)]
@@ -91,7 +69,6 @@ class Board:
         return self.board[r][c] == 0
 
     def remove(self, r1, c1, r2, c2):
-        """Xóa 1 cặp khỏi bàn (đặt về 0)."""
         self.board[r1][c1] = 0
         self.board[r2][c2] = 0
 
@@ -99,7 +76,6 @@ class Board:
         return bool(np.all(self.board == 0))
 
     def find_all_pairs(self):
-        """Trả về list tất cả cặp (r1,c1,r2,c2) cùng loại còn trên bàn."""
         positions = {}
         for r in range(self.rows):
             for c in range(self.cols):
@@ -114,7 +90,6 @@ class Board:
         return pairs
 
     def clone(self):
-        """Trả về bản sao độc lập của board (dùng khi thử 1 nhánh tìm kiếm)."""
         new = Board.__new__(Board)
         new.rows = self.rows
         new.cols = self.cols
@@ -123,10 +98,6 @@ class Board:
         return new
 
     def to_key(self):
-        """
-        Chuyển bàn cờ thành 1 giá trị bất biến (hashable) để cho vào
-        visited-set / explored-set của các thuật toán search.
-        """
         return self.board.tobytes()
 
     def num_remaining_tiles(self):
