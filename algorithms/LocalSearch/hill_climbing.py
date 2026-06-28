@@ -1,0 +1,59 @@
+from algorithms.base import SearchLogger
+from game.state import GameState
+
+
+def hill_climbing_search(initial_state: GameState):
+    logger = SearchLogger("Hill Climbing")
+    total_pairs = initial_state.board.num_remaining_tiles() // 2
+    logger.log(f"[Hill Climbing] Bắt đầu | Cặp cần gán: {total_pairs}", state=initial_state.board)
+
+    if initial_state.is_goal():
+        logger.log("[Xong] Bàn cờ đã trống ngay từ đầu.")
+        return logger.finalize(True, [], [], cost=0)
+
+    current_state = initial_state
+    actions_taken = []
+    states_visited = [initial_state]
+
+    step = 0
+    while not current_state.is_goal():
+        logger.on_expand(current_state)
+        
+        actions = current_state.get_actions()
+        if not actions:
+            logger.log(f"[Thất bại] Bị kẹt tại bước {step}. Không có nước đi khả dĩ (Local Optimum).", state=current_state.board)
+            return logger.finalize(False, actions_taken, states_visited, len(actions_taken))
+
+        best_action = None
+        best_value = -1
+        best_child = None
+
+        for action in actions:
+            logger.on_generate(current_state)
+            child = current_state.apply_action(action)
+            
+            # Evaluation function: number of next possible connections.
+            # If the neighbor is the goal state, assign it a maximum score.
+            if child.is_goal():
+                val = 999999
+            else:
+                val = len(child.get_actions())
+
+            if val > best_value:
+                best_value = val
+                best_action = action
+                best_child = child
+
+        r1, c1, r2, c2 = best_action
+        logger.log(
+            f"[Gán] ({r1},{c1})↔({r2},{c2}) | Láng giềng tốt nhất có {best_value if best_value != 999999 else 0} nước tiếp theo",
+            state=best_child.board
+        )
+
+        current_state = best_child
+        actions_taken.append(best_action)
+        states_visited.append(current_state)
+        step += 1
+
+    logger.log(f"[Xong] Giải thành công sau {step} cặp!")
+    return logger.finalize(True, actions_taken, states_visited, len(actions_taken))

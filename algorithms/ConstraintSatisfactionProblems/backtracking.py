@@ -20,6 +20,7 @@ def backtracking_search(initial_state: GameState, max_steps=200000):
             return assigned_order
 
         candidates = state.get_actions()
+        logger.log(f"[Xét nhánh] Depth:{len(assigned_order)} | có {len(candidates)} candidate khả dĩ", state=state.board)
 
         for candidate in candidates:
             logger.on_generate()

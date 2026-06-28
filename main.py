@@ -23,6 +23,7 @@ from algorithms.InformedSearchAlgorithms.greedy import greedy
 from algorithms.LocalSearch.beam_search import beam_search
 from algorithms.ConstraintSatisfactionProblems.backtracking import backtracking_search
 from algorithms.ConstraintSatisfactionProblems.feedforward import feedforward_search
+from algorithms.LocalSearch.hill_climbing import hill_climbing_search
 
 # DANH SÁCH THUẬT TOÁN
 
@@ -47,6 +48,9 @@ def run_backtracking(state):
 def run_feedforward(state):
     return feedforward_search(state)
 
+def run_hill_climbing(state):
+    return hill_climbing_search(state)
+
 ALGO_GROUPS = [
     {
         "name": "Uninformed search",
@@ -65,7 +69,8 @@ ALGO_GROUPS = [
     {
         "name": "Local search",
         "algos": [
-            {"name": "Beam Search (FF)", "func": run_beam_search}
+            {"name": "Beam Search (FF)", "func": run_beam_search},
+            {"name": "Hill Climbing", "func": run_hill_climbing}
         ]
     },
     {
