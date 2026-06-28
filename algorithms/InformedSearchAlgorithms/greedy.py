@@ -1,7 +1,6 @@
 import heapq
 import itertools
-from algorithms.base import SearchLogger, reconstruct_path, feedforward_heuristic
-
+from algorithms.base import SearchLogger, reconstruct_path
 
 def greedy(initial_state):
     logger = SearchLogger("Greedy (FF)")
@@ -10,14 +9,14 @@ def greedy(initial_state):
     frontier = []
 
     def push(state):
-        h = feedforward_heuristic(state)
+        h = state.heuristic()
         tie_break = -len(state.get_actions())
         heapq.heappush(frontier, (h, tie_break, next(counter), state))
 
     push(initial_state)
     logger.on_generate(initial_state)
-    h0 = feedforward_heuristic(initial_state)
-    logger.log(f"[Greedy] Bắt đầu | h0={h0:.2f} | Frontier:1", state=initial_state)
+    h0 = initial_state.heuristic()
+    logger.log(f"[Greedy] Bắt đầu | h0={h0} | Frontier:1", state=initial_state)
 
     if initial_state.is_goal():
         states, actions = reconstruct_path(came_from, initial_state)

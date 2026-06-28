@@ -1,13 +1,19 @@
-from algorithms.base import SearchLogger, feedforward_heuristic
+from algorithms.base import SearchLogger
 from game.state import GameState
 
 
-def feedforward_search(initial_state: GameState, max_steps=200000):
-    logger = SearchLogger("Feedforward")
+def causes_deadlock(child_state):
+    if child_state.is_goal():
+        return False
+    return len(child_state.get_actions()) == 0
+
+
+def forwardchecking_search(initial_state: GameState, max_steps=200000):
+    logger = SearchLogger("Forward Checking")
     total = initial_state.board.num_remaining_tiles() // 2
     step_counter = [0]
 
-    logger.log(f"[CSP] Bắt đầu | {total} cặp cần gán", state=initial_state.board)
+    logger.log(f"[Forward Checking] Bắt đầu | {total} cặp cần gán", state=initial_state.board)
 
     def backtrack(state, assigned_order):
         step_counter[0] += 1
@@ -20,16 +26,23 @@ def feedforward_search(initial_state: GameState, max_steps=200000):
             return assigned_order
 
         candidates = state.get_actions()
-        
-        candidates_with_h = []
+
+        viable_candidates = []
+        pruned_count = 0
         for candidate in candidates:
             child = state.apply_action(candidate)
-            h = feedforward_heuristic(child)
-            candidates_with_h.append((h, candidate, child))
-        
-        candidates_with_h.sort(key=lambda item: item[0])
+            if causes_deadlock(child):
+                pruned_count += 1
+                continue
+            viable_candidates.append((candidate, child))
 
-        for h, candidate, child in candidates_with_h:
+        logger.log(
+            f"[Xét nhánh] Depth:{len(assigned_order)} | candidate:{len(candidates)} "
+            f"| khả dĩ sau forward-check:{len(viable_candidates)} | đã cắt:{pruned_count}",
+            state=state.board
+        )
+
+        for candidate, child in viable_candidates:
             logger.on_generate()
             r1, c1, r2, c2 = candidate
 

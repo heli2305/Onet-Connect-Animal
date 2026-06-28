@@ -22,7 +22,7 @@ from algorithms.UninformedSearchAlgorithms.dfs import dfs
 from algorithms.InformedSearchAlgorithms.greedy import greedy
 from algorithms.LocalSearch.beam_search import beam_search
 from algorithms.ConstraintSatisfactionProblems.backtracking import backtracking_search
-from algorithms.ConstraintSatisfactionProblems.feedforward import feedforward_search
+from algorithms.ConstraintSatisfactionProblems.forwardchecking import forwardchecking_search
 from algorithms.LocalSearch.hill_climbing import hill_climbing_search
 from algorithms.AdversarialSearch.alpha_beta import alpha_beta_search_full
 from algorithms.SearchingInComplexEnvironments.and_or import and_or_search
@@ -47,8 +47,8 @@ def run_beam_search(state):
 def run_backtracking(state):
     return backtracking_search(state)
 
-def run_feedforward(state):
-    return feedforward_search(state)
+def run_forwardchecking(state):
+    return forwardchecking_search(state)
 
 def run_hill_climbing(state):
     return hill_climbing_search(state)
@@ -88,7 +88,7 @@ ALGO_GROUPS = [
         "name": "Constraint satisfaction problems",
         "algos": [
             {"name": "Backtracking", "func": run_backtracking},
-            {"name": "Forward Checking", "func": run_feedforward}
+            {"name": "Forward Checking", "func": run_forwardchecking}
         ]
     },
     {
