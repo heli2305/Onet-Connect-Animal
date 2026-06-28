@@ -24,6 +24,7 @@ from algorithms.LocalSearch.beam_search import beam_search
 from algorithms.ConstraintSatisfactionProblems.backtracking import backtracking_search
 from algorithms.ConstraintSatisfactionProblems.feedforward import feedforward_search
 from algorithms.LocalSearch.hill_climbing import hill_climbing_search
+from algorithms.AdversarialSearch.alpha_beta import alpha_beta_search_full
 
 # DANH SÁCH THUẬT TOÁN
 
@@ -50,6 +51,9 @@ def run_feedforward(state):
 
 def run_hill_climbing(state):
     return hill_climbing_search(state)
+
+def run_alpha_beta(state):
+    return alpha_beta_search_full(state)
 
 ALGO_GROUPS = [
     {
@@ -86,7 +90,9 @@ ALGO_GROUPS = [
     },
     {
         "name": "Adversarial search",
-        "algos": []
+        "algos": [
+            {"name": "Alpha-Beta Search", "func": run_alpha_beta}
+        ]
     }
 ]
 
