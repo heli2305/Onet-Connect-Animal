@@ -18,35 +18,55 @@ from game.rules import find_path
 from game.visualizer import Visualizer, cell_rect, SCREEN_W, SCREEN_H, LEFT_W, RIGHT_W, BOARD_H, LOG_LINE_H
 from algorithms.InformedSearchAlgorithms.astar import astar
 from algorithms.UninformedSearchAlgorithms.bfs import bfs
+from algorithms.UninformedSearchAlgorithms.dfs import dfs
+from algorithms.InformedSearchAlgorithms.greedy import greedy
+from algorithms.LocalSearch.beam_search import beam_search
 from algorithms.ConstraintSatisfactionProblems.backtracking import backtracking_search
+from algorithms.ConstraintSatisfactionProblems.feedforward import feedforward_search
 
 # DANH SÁCH THUẬT TOÁN
 
 def run_bfs(state):
     return bfs(state)
 
+def run_dfs(state):
+    return dfs(state)
+
 def run_astar(state):
     return astar(state)
 
+def run_greedy(state):
+    return greedy(state)
+
+def run_beam_search(state):
+    return beam_search(state)
+
 def run_backtracking(state):
     return backtracking_search(state)
+
+def run_feedforward(state):
+    return feedforward_search(state)
 
 ALGO_GROUPS = [
     {
         "name": "Uninformed search",
         "algos": [
-            {"name": "BFS", "func": run_bfs}
+            {"name": "BFS", "func": run_bfs},
+            {"name": "DFS (FF)", "func": run_dfs}
         ]
     },
     {
         "name": "Informed search",
         "algos": [
-            {"name": "A* Search", "func": run_astar}
+            {"name": "A* Search", "func": run_astar},
+            {"name": "Greedy (FF)", "func": run_greedy}
         ]
     },
     {
         "name": "Local search",
-        "algos": []
+        "algos": [
+            {"name": "Beam Search (FF)", "func": run_beam_search}
+        ]
     },
     {
         "name": "Searching in complex environments",
@@ -55,7 +75,8 @@ ALGO_GROUPS = [
     {
         "name": "Constraint satisfaction problems",
         "algos": [
-            {"name": "Backtracking (CSP)", "func": run_backtracking}
+            {"name": "Backtracking (CSP)", "func": run_backtracking},
+            {"name": "Feedforward", "func": run_feedforward}
         ]
     },
     {
@@ -63,6 +84,7 @@ ALGO_GROUPS = [
         "algos": []
     }
 ]
+
 
 def main():
     pygame.init()
