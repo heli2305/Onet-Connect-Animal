@@ -14,11 +14,11 @@ def evaluate_state(state, player):
     return available if player == MAX_PLAYER else -available
 
 
-def alpha_beta_search(initial_state: GameState, depth_limit=3):
-    logger = SearchLogger("Alpha-Beta")
+def minimax_search(initial_state: GameState, depth_limit=3):
+    logger = SearchLogger("Minimax")
     best_action_holder = [None]
 
-    def alphabeta(state, depth, player, alpha, beta, last_action=None):
+    def minimax(state, depth, player, last_action=None):
         logger.on_expand(state)
         
         player_name = "MAX" if player == MAX_PLAYER else "MIN"
@@ -26,56 +26,51 @@ def alpha_beta_search(initial_state: GameState, depth_limit=3):
         actions = state.get_actions()
         
         logger.log(
-            f"[Mở rộng AlphaBeta] {player_name} (d={depth}) | {action_part}Child:{len(actions)}",
+            f"[Mở rộng Minimax] {player_name} (d={depth}) | {action_part}Child:{len(actions)}",
             state=state
         )
 
         if not actions or depth == 0:
             return evaluate_state(state, player)
+
         if player == MAX_PLAYER:
             value = float("-inf")
             for a in actions:
                 logger.on_generate(state.apply_action(a))
-                child_value = alphabeta(state.apply_action(a), depth - 1, MIN_PLAYER, alpha, beta, a)
+                child_value = minimax(state.apply_action(a), depth - 1, MIN_PLAYER, a)
                 if child_value > value:
                     value = child_value
                     if depth == depth_limit:
                         best_action_holder[0] = a
-                alpha = max(alpha, value)
-                if alpha >= beta:
-                    break
             return value
         else:
             value = float("inf")
             for a in actions:
                 logger.on_generate(state.apply_action(a))
-                child_value = alphabeta(state.apply_action(a), depth - 1, MAX_PLAYER, alpha, beta, a)
+                child_value = minimax(state.apply_action(a), depth - 1, MAX_PLAYER, a)
                 if child_value < value:
                     value = child_value
-                beta = min(beta, value)
-                if alpha >= beta:
-                    break
             return value
 
-    logger.log(f"[Alpha-Beta] Bắt đầu | depth_limit={depth_limit}", state=initial_state)
-    root_value = alphabeta(initial_state, depth_limit, MAX_PLAYER, float("-inf"), float("inf"))
+    logger.log(f"[Minimax] Bắt đầu | depth_limit={depth_limit}", state=initial_state)
+    root_value = minimax(initial_state, depth_limit, MAX_PLAYER)
     logger.log(f"[Xong] Giá trị={root_value} | Nước đề xuất={best_action_holder[0]}")
     if best_action_holder[0] is not None:
         return logger.finalize(True, actions=[best_action_holder[0]], cost=root_value)
     return logger.finalize(False)
 
 
-def alpha_beta_search_full(initial_state: GameState, depth_limit=3):
-    logger = SearchLogger("Alpha-Beta (Adversarial)")
+def minimax_search_full(initial_state: GameState, depth_limit=3):
+    logger = SearchLogger("Minimax (Adversarial)")
     current_state = initial_state
     actions_taken = []
-    logger.log(f"[Alpha-Beta] Bắt đầu | {initial_state.board.num_remaining_tiles() // 2} cặp", state=initial_state.board)
+    logger.log(f"[Minimax] Bắt đầu | {initial_state.board.num_remaining_tiles() // 2} cặp", state=initial_state.board)
     while not current_state.is_goal():
-        res = alpha_beta_search(current_state, depth_limit=depth_limit)
+        res = minimax_search(current_state, depth_limit=depth_limit)
         logger.expanded_nodes += res.expanded_nodes
         logger.generated_nodes += res.generated_nodes
         
-        # Sao chép các thông tin log và bước duyệt của lượt tìm kiếm alpha-beta này
+        # Sao chép các thông tin log và bước duyệt của lượt tìm kiếm minimax này
         logger.log_messages.extend(res.log_messages)
         logger.search_steps.extend(res.search_steps)
         

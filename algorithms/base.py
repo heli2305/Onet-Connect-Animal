@@ -73,23 +73,3 @@ def reconstruct_path(came_from, last_state):
     return states, actions
 
 
-def feedforward_heuristic(state):
-    import numpy as np
-    x = np.array([
-        state.board.num_remaining_tiles(),
-        len(state.get_actions()),
-        state.board.rows,
-        state.board.cols
-    ], dtype=float)
-    w1 = np.array([
-        [0.5, -0.2, 0.1, 0.0],
-        [0.1, 0.8, -0.3, 0.2],
-        [-0.1, 0.3, 0.5, -0.4],
-        [0.0, 0.1, -0.1, 0.6]
-    ])
-    b1 = np.array([0.1, -0.1, 0.2, 0.0])
-    w2 = np.array([1.0, 0.5, -0.5, 0.2])
-    b2 = 0.0
-    h1 = np.maximum(0.0, np.dot(w1, x) + b1)
-    return float(np.dot(w2, h1) + b2)
-

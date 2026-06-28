@@ -46,12 +46,13 @@ def astar(initial_state: GameState):
         prev = came_from.get(state)
         if prev:
             _, (r1, c1, r2, c2) = prev
-            action_part = f"({r1},{c1})-({r2},{c2}) | "
+            action_part = f"Nối:({r1},{c1})-({r2},{c2}) | "
         else:
             action_part = ""
 
+        actions = state.get_actions()
         logger.log(
-            f"[Pop] {action_part}g={g_n} h={h_n} f={f_n} | Fr:{len(frontier)}",
+            f"[Mở rộng] {action_part}g={g_n} h={h_n} f={f_n} | Fron:{len(frontier)} | Reached:{len(visited)} | Child:{len(actions)}",
             state=state
         )
 

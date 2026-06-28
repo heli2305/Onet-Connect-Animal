@@ -25,7 +25,9 @@ from algorithms.ConstraintSatisfactionProblems.backtracking import backtracking_
 from algorithms.ConstraintSatisfactionProblems.forwardchecking import forwardchecking_search
 from algorithms.LocalSearch.hill_climbing import hill_climbing_search
 from algorithms.AdversarialSearch.alpha_beta import alpha_beta_search_full
+from algorithms.AdversarialSearch.minimax import minimax_search_full
 from algorithms.SearchingInComplexEnvironments.and_or import and_or_search
+from algorithms.SearchingInComplexEnvironments.partial_observable import partial_observable_search
 
 # DANH SÁCH THUẬT TOÁN
 
@@ -56,33 +58,40 @@ def run_hill_climbing(state):
 def run_alpha_beta(state):
     return alpha_beta_search_full(state)
 
+def run_minimax(state):
+    return minimax_search_full(state, depth_limit=4)
+
+def run_partial_observable(state):
+    return partial_observable_search(state)
+
 ALGO_GROUPS = [
     {
         "name": "Uninformed search",
         "algos": [
             {"name": "BFS", "func": run_bfs},
-            {"name": "DFS (FF)", "func": run_dfs}
+            {"name": "DFS", "func": run_dfs}
         ]
     },
     {
         "name": "Informed search",
         "algos": [
             {"name": "A* Search", "func": run_astar},
-            {"name": "Greedy (FF)", "func": run_greedy}
+            {"name": "Greedy", "func": run_greedy}
         ]
     },
     {
         "name": "Local search",
         "algos": [
-            {"name": "Beam Search (FF)", "func": run_beam_search},
+            {"name": "Beam Search", "func": run_beam_search},
             {"name": "Hill Climbing", "func": run_hill_climbing}
         ]
     },
     {
-    "name": "Searching in complex environments",
-    "algos": [
-        {"name": "AND-OR Graph Search", "func": and_or_search}
-    ]
+        "name": "Searching in complex environments",
+        "algos": [
+            {"name": "AND-OR Graph Search", "func": and_or_search},
+            {"name": "Partial Observable", "func": run_partial_observable}
+        ]
     },
     {
         "name": "Constraint satisfaction problems",
@@ -94,6 +103,7 @@ ALGO_GROUPS = [
     {
         "name": "Adversarial search",
         "algos": [
+            {"name": "Minimax", "func": run_minimax},
             {"name": "Alpha-Beta", "func": run_alpha_beta}
         ]
     }
@@ -128,6 +138,7 @@ def main():
     active_bottom_tab = 0
     run_history = []
     comparison_scroll = 0
+    chart_metric = 0
 
     # Log
     log_lines  = ["Chọn thuật toán và nhấn [Chạy AI]."]
@@ -200,6 +211,66 @@ def main():
 
         threading.Thread(target=worker, daemon=True).start()
 
+    def start_compare_group():
+        nonlocal is_running, run_history, active_bottom_tab, log_lines, log_scroll
+        group = ALGO_GROUPS[selected_group_idx]
+        log_lines.append(f"So sánh nhóm: {group['name']}...")
+        is_running = True
+        run_history = []
+        active_bottom_tab = 1
+
+        def worker():
+            nonlocal is_running, run_history, log_lines, log_scroll
+            for algo in group["algos"]:
+                name = algo["name"]
+                func = algo["func"]
+                log_lines.append(f"-> Đang chạy {name}...")
+                log_scroll = max(0, len(log_lines) - ((SCREEN_H - 100) // LOG_LINE_H))
+                init_state = make_initial_state(rows=6, cols=6, seed=seed)
+                try:
+                    r = func(init_state)
+                    r.algorithm_name = name
+                    run_history.append(r)
+                    log_lines.append(f"   {name}: {'Thành công' if r.success else 'Thất bại'} ({r.time_seconds*1000:.1f} ms)")
+                except Exception as e:
+                    log_lines.append(f"   {name}: Lỗi: {str(e)}")
+                log_scroll = max(0, len(log_lines) - ((SCREEN_H - 100) // LOG_LINE_H))
+            log_lines.append("Hoàn thành so sánh nhóm!")
+            log_scroll = max(0, len(log_lines) - ((SCREEN_H - 100) // LOG_LINE_H))
+            is_running = False
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def start_compare_all():
+        nonlocal is_running, run_history, active_bottom_tab, log_lines, log_scroll
+        log_lines.append("So sánh tất cả các nhóm thuật toán...")
+        is_running = True
+        run_history = []
+        active_bottom_tab = 1
+
+        def worker():
+            nonlocal is_running, run_history, log_lines, log_scroll
+            for group in ALGO_GROUPS:
+                for algo in group["algos"]:
+                    name = algo["name"]
+                    func = algo["func"]
+                    log_lines.append(f"-> Đang chạy {name}...")
+                    log_scroll = max(0, len(log_lines) - ((SCREEN_H - 100) // LOG_LINE_H))
+                    init_state = make_initial_state(rows=6, cols=6, seed=seed)
+                    try:
+                        r = func(init_state)
+                        r.algorithm_name = name
+                        run_history.append(r)
+                        log_lines.append(f"   {name}: {'Thành công' if r.success else 'Thất bại'} ({r.time_seconds*1000:.1f} ms)")
+                    except Exception as e:
+                        log_lines.append(f"   {name}: Lỗi: {str(e)}")
+                    log_scroll = max(0, len(log_lines) - ((SCREEN_H - 100) // LOG_LINE_H))
+            log_lines.append("Hoàn thành so sánh tất cả!")
+            log_scroll = max(0, len(log_lines) - ((SCREEN_H - 100) // LOG_LINE_H))
+            is_running = False
+
+        threading.Thread(target=worker, daemon=True).start()
+
 
     while True:
         clock.tick(60)
@@ -232,7 +303,7 @@ def main():
                 mx, my = pygame.mouse.get_pos()
                 if mx > SCREEN_W - RIGHT_W:
                     log_scroll = max(0, log_scroll - event.y * 2)
-                elif LEFT_W < mx < SCREEN_W - RIGHT_W and my > BOARD_H:
+                elif LEFT_W + 410 < mx < SCREEN_W - RIGHT_W and my > BOARD_H:
                     comparison_scroll = max(0, comparison_scroll - event.y)
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -268,6 +339,7 @@ def main():
                             if clicked_item:
                                 break
 
+
                 btn_run = pygame.Rect(5, SCREEN_H - 158, LEFT_W - 10, 38)
                 if btn_run.collidepoint(mx, my) and not is_running:
                     new_game(next_seed=False)
@@ -294,12 +366,31 @@ def main():
                         analysis_step = min(len(result.search_steps) - 1, analysis_step + 1)
 
                 if LEFT_W < mx < SCREEN_W - RIGHT_W and BOARD_H < my < BOARD_H + 38:
-                    tab1_rect = pygame.Rect(LEFT_W + 12, BOARD_H + 10, 150, 28)
-                    tab2_rect = pygame.Rect(LEFT_W + 12 + 160, BOARD_H + 10, 150, 28)
-                    if tab1_rect.collidepoint(mx, my):
+                    tab0_rect = pygame.Rect(LEFT_W + 12, BOARD_H + 10, 140, 28)
+                    tab1_rect = pygame.Rect(LEFT_W + 162, BOARD_H + 10, 150, 28)
+                    btn_cgroup = pygame.Rect(LEFT_W + 380, BOARD_H + 10, 140, 28)
+                    btn_call = pygame.Rect(LEFT_W + 530, BOARD_H + 10, 150, 28)
+                    
+                    if tab0_rect.collidepoint(mx, my):
                         active_bottom_tab = 0
-                    elif tab2_rect.collidepoint(mx, my):
+                    elif tab1_rect.collidepoint(mx, my):
                         active_bottom_tab = 1
+                    elif active_bottom_tab == 1 and btn_cgroup.collidepoint(mx, my) and not is_running:
+                        new_game(next_seed=False)
+                        start_compare_group()
+                    elif active_bottom_tab == 1 and btn_call.collidepoint(mx, my) and not is_running:
+                        new_game(next_seed=False)
+                        start_compare_all()
+
+                if active_bottom_tab == 1 and LEFT_W < mx < SCREEN_W - RIGHT_W and BOARD_H + 48 < my < BOARD_H + 72:
+                    toggles = [
+                        pygame.Rect(LEFT_W + 12, BOARD_H + 48, 110, 24),
+                        pygame.Rect(LEFT_W + 127, BOARD_H + 48, 110, 24),
+                    ]
+                    for idx, rect in enumerate(toggles):
+                        if rect.collidepoint(mx, my):
+                            chart_metric = idx
+                            break
 
                 if LEFT_W < mx < SCREEN_W - RIGHT_W and my < BOARD_H:
                     if not is_running and not anim_queue:
@@ -381,7 +472,8 @@ def main():
             active_log_idx=active_log_idx,
             active_bottom_tab=active_bottom_tab,
             run_history=run_history,
-            comparison_scroll=comparison_scroll
+            comparison_scroll=comparison_scroll,
+            chart_metric=chart_metric
         )
 
         pygame.display.flip()

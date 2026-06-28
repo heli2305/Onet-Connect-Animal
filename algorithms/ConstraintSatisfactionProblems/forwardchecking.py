@@ -13,14 +13,14 @@ def forwardchecking_search(initial_state: GameState, max_steps=200000):
     total = initial_state.board.num_remaining_tiles() // 2
     step_counter = [0]
 
-    logger.log(f"[Forward Checking] Bắt đầu | {total} cặp cần gán", state=initial_state.board)
+    logger.log(f"[Forward Checking] Bắt đầu | {total} cặp cần gán", state=initial_state)
 
     def backtrack(state, assigned_order):
         step_counter[0] += 1
         if step_counter[0] > max_steps:
             return None
 
-        logger.on_expand()
+        logger.on_expand(state)
 
         if state.is_goal():
             return assigned_order
@@ -36,28 +36,24 @@ def forwardchecking_search(initial_state: GameState, max_steps=200000):
                 continue
             viable_candidates.append((candidate, child))
 
+        prev = assigned_order[-1] if assigned_order else None
+        action_part = f"Nối:({prev[0]},{prev[1]})-({prev[2]},{prev[3]}) | " if prev else ""
         logger.log(
-            f"[Xét nhánh] Depth:{len(assigned_order)} | candidate:{len(candidates)} "
-            f"| khả dĩ sau forward-check:{len(viable_candidates)} | đã cắt:{pruned_count}",
-            state=state.board
+            f"[Mở rộng] {action_part}Depth:{len(assigned_order)}/{total} | FC Khả dĩ:{len(viable_candidates)} (Cắt:{pruned_count}) | Child:{len(candidates)}",
+            state=state
         )
 
         for candidate, child in viable_candidates:
-            logger.on_generate()
+            logger.on_generate(child)
             r1, c1, r2, c2 = candidate
-
-            logger.log(
-                f"[Gán] ({r1},{c1})→({r2},{c2}) | Depth:{len(assigned_order)+1}/{total}",
-                state=child.board
-            )
 
             result = backtrack(child, assigned_order + [candidate])
             if result is not None:
                 return result
 
             logger.log(
-                f"[Quay lui] Bỏ ({r1},{c1})→({r2},{c2}) | Depth:{len(assigned_order)}",
-                state=state.board
+                f"[Quay lui] Bỏ Nối:({r1},{c1})-({r2},{c2}) | Depth:{len(assigned_order)}",
+                state=state
             )
 
         return None

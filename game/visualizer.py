@@ -111,12 +111,12 @@ class Visualizer:
              result, log_lines, log_scroll,
              algo_groups, selected_group_idx, selected_algo_idx, opened_group, is_running,
              is_analysis_mode=False, analysis_step=0, active_log_idx=None,
-             active_bottom_tab=0, run_history=None, comparison_scroll=0):
+             active_bottom_tab=0, run_history=None, comparison_scroll=0, chart_metric=0):
 
         screen.fill(BG)
         self._draw_left(screen, algo_groups, selected_group_idx, selected_algo_idx, opened_group, is_running, result, is_analysis_mode, analysis_step)
         self._draw_board(screen, state, selected_cell, path_cells, path_animal_id)
-        self._draw_bottom(screen, state, result, active_bottom_tab, run_history, comparison_scroll)
+        self._draw_bottom(screen, state, result, active_bottom_tab, run_history, comparison_scroll, algo_groups, chart_metric, is_running)
         self._draw_right(screen, log_lines, log_scroll, is_analysis_mode, active_log_idx)
 
 
@@ -211,6 +211,8 @@ class Visualizer:
 
                 if val == 0 and not is_endpoint:
                     color = CELL_EMPTY
+                elif val == -1:
+                    color = (60, 64, 80) # Màu xám đậm cho ô ẩn
                 elif (r, c) in path_set:
                     color = CELL_PATH
                 elif selected_cell == (r, c):
@@ -225,7 +227,7 @@ class Visualizer:
                 if val == 0 and is_endpoint:
                     draw_val = path_animal_id
 
-                if draw_val != 0:
+                if draw_val > 0:
                     animal = ANIMAL_NAMES[(draw_val - 1) % len(ANIMAL_NAMES)]
                     if self.use_images and animal in self.animal_images:
                         img = self.animal_images[animal]
@@ -240,6 +242,8 @@ class Visualizer:
                             cr.centerx - img_scaled.get_width() // 2,
                             cr.centery - img_scaled.get_height() // 2,
                         ))                  
+                elif val == -1:
+                    _text(screen, "?", self.font_title, WHITE, cr.centerx - 6, cr.centery - 12)
 
         if len(path_cells) >= 2:
             points = []
@@ -251,30 +255,46 @@ class Visualizer:
         _outline(screen, BORDER, LEFT_W, 0, CENTER_W, BOARD_H)
 
 
-    def _draw_bottom(self, screen, state, result, active_bottom_tab=0, run_history=None, comparison_scroll=0):
+    def _draw_bottom(self, screen, state, result, active_bottom_tab=0, run_history=None, comparison_scroll=0, algo_groups=None, chart_metric=0, is_running=False):
         run_history = run_history or []
         _fill(screen, PANEL2, LEFT_W, BOARD_H, CENTER_W, BOTTOM_H)
         _outline(screen, BORDER, LEFT_W, BOARD_H, CENTER_W, BOTTOM_H)
         pygame.draw.line(screen, BORDER,
                          (LEFT_W, BOARD_H), (LEFT_W + CENTER_W, BOARD_H))
 
-        tab1_rect = pygame.Rect(LEFT_W + 12, BOARD_H + 10, 150, 28)
-        tab2_rect = pygame.Rect(LEFT_W + 12 + 160, BOARD_H + 10, 150, 28)
+        tab0_rect = pygame.Rect(LEFT_W + 12, BOARD_H + 10, 140, 28)
+        tab1_rect = pygame.Rect(LEFT_W + 12 + 150, BOARD_H + 10, 150, 28)
 
-        tab1_color = PANEL if active_bottom_tab == 0 else PANEL2
-        tab2_color = PANEL if active_bottom_tab == 1 else PANEL2
+        tab0_color = PANEL if active_bottom_tab == 0 else PANEL2
+        tab1_color = PANEL if active_bottom_tab == 1 else PANEL2
+
+        _fill(screen, tab0_color, tab0_rect.x, tab0_rect.y, tab0_rect.w, tab0_rect.h, radius=4)
+        _outline(screen, BORDER, tab0_rect.x, tab0_rect.y, tab0_rect.w, tab0_rect.h, radius=4)
+        _text(screen, "Chi tiết", self.font_btn_small, WHITE, tab0_rect.x + 35, tab0_rect.y + 5)
 
         _fill(screen, tab1_color, tab1_rect.x, tab1_rect.y, tab1_rect.w, tab1_rect.h, radius=4)
         _outline(screen, BORDER, tab1_rect.x, tab1_rect.y, tab1_rect.w, tab1_rect.h, radius=4)
-        _text(screen, "Chi tiết", self.font_btn_small, WHITE, tab1_rect.x + 45, tab1_rect.y + 5)
-
-        _fill(screen, tab2_color, tab2_rect.x, tab2_rect.y, tab2_rect.w, tab2_rect.h, radius=4)
-        _outline(screen, BORDER, tab2_rect.x, tab2_rect.y, tab2_rect.w, tab2_rect.h, radius=4)
-        _text(screen, "So sánh", self.font_btn_small, WHITE, tab2_rect.x + 45, tab2_rect.y + 5)
+        _text(screen, "So sánh & Biểu đồ", self.font_btn_small, WHITE, tab1_rect.x + 15, tab1_rect.y + 5)
 
         pygame.draw.line(screen, BORDER,
                          (LEFT_W + 4, BOARD_H + 42),
                          (LEFT_W + CENTER_W - 4, BOARD_H + 42))
+
+        # Vẽ nút So sánh Nhóm và So sánh Tất Cả bên cạnh Tab header nếu ở Tab 1
+        if active_bottom_tab == 1:
+            btn_comp_group = pygame.Rect(LEFT_W + 380, BOARD_H + 10, 140, 28)
+            btn_comp_all = pygame.Rect(LEFT_W + 530, BOARD_H + 10, 150, 28)
+
+            group_color = (60, 62, 75) if is_running else BLUE
+            all_color = (60, 62, 75) if is_running else ORANGE
+
+            _fill(screen, group_color, btn_comp_group.x, btn_comp_group.y, btn_comp_group.w, btn_comp_group.h, radius=4)
+            _outline(screen, BORDER, btn_comp_group.x, btn_comp_group.y, btn_comp_group.w, btn_comp_group.h, radius=4)
+            _text(screen, "So sánh Nhóm", self.font_btn_small, WHITE, btn_comp_group.x + 22, btn_comp_group.y + 5)
+
+            _fill(screen, all_color, btn_comp_all.x, btn_comp_all.y, btn_comp_all.w, btn_comp_all.h, radius=4)
+            _outline(screen, BORDER, btn_comp_all.x, btn_comp_all.y, btn_comp_all.w, btn_comp_all.h, radius=4)
+            _text(screen, "So sánh Tất Cả", self.font_btn_small, WHITE, btn_comp_all.x + 22, btn_comp_all.y + 5)
 
         if active_bottom_tab == 0:
             if result:
@@ -310,48 +330,134 @@ class Visualizer:
                 _text(screen,
                       f"Bàn {board.rows}×{board.cols}  |  "
                       f"Cặp còn lại: {pairs_left}  |  "
-                      f"Chọn thuật toán và nhấn Chạy AI",
+                      f"Chọn thuật toán và nhấn Chạy AI hoặc So sánh",
                       self.font_stats_desc, GRAY, LEFT_W + 12, BOARD_H + 54)
         else:
-            if len(run_history) > 6:
-                ind = f"Cuộn để xem (+{len(run_history) - 6})"
-                _text(screen, ind, self.font_small, GRAY, LEFT_W + CENTER_W - 140, BOARD_H + 16)
+            # Tab 1: So sánh & Biểu đồ (Side-by-Side)
+            # 1. Vẽ các nút chuyển hệ số (Rút gọn còn 2 chỉ số chính: Thời gian và Nút mở rộng)
+            toggles = [
+                ("Thời gian (ms)", pygame.Rect(LEFT_W + 12, BOARD_H + 48, 110, 24)),
+                ("Nút mở rộng", pygame.Rect(LEFT_W + 127, BOARD_H + 48, 110, 24)),
+            ]
+            for idx, (label, rect) in enumerate(toggles):
+                bg_col = BLUE if chart_metric == idx else (50, 52, 65)
+                _fill(screen, bg_col, rect.x, rect.y, rect.w, rect.h, radius=4)
+                _outline(screen, BORDER, rect.x, rect.y, rect.w, rect.h, radius=4)
+                _text(screen, label, self.font_small, WHITE, rect.x + 12, rect.y + 4)
 
-            x = LEFT_W + 12
-            header_y = BOARD_H + 52
-            _text(screen, "Thuật toán", self.font_stats_header, GRAY, x, header_y)
-            _text(screen, "Trạng thái", self.font_stats_header, GRAY, x + 160, header_y)
-            _text(screen, "Số bước", self.font_stats_header, GRAY, x + 270, header_y)
-            _text(screen, "Nodes mở", self.font_stats_header, GRAY, x + 360, header_y)
-            _text(screen, "Nodes sinh", self.font_stats_header, GRAY, x + 470, header_y)
-            _text(screen, "Thời gian", self.font_stats_header, GRAY, x + 580, header_y)
-
-            pygame.draw.line(screen, BORDER,
-                             (LEFT_W + 4, BOARD_H + 74),
-                             (LEFT_W + CENTER_W - 4, BOARD_H + 74))
+            # Vẽ vạch phân chia đứng giữa Biểu đồ (Trái) và Bảng (Phải)
+            divider_x = LEFT_W + 410
+            pygame.draw.line(screen, BORDER, (divider_x, BOARD_H + 48), (divider_x, SCREEN_H - 12), 2)
 
             if not run_history:
-                _text(screen, "Chưa có dữ liệu so sánh. Hãy chọn thuật toán và nhấn Chạy AI.",
-                      self.font_stats_desc, GRAY, LEFT_W + 12, BOARD_H + 85)
+                _text(screen, "Chưa có dữ liệu. Nhấp 'So sánh Nhóm' hoặc 'So sánh Tất Cả' để chạy.",
+                      self.font_stats_desc, GRAY, LEFT_W + 12, BOARD_H + 120)
             else:
-                max_sc = max(0, len(run_history) - 6)
-                comparison_scroll = min(comparison_scroll, max_sc)
-                start_y = BOARD_H + 80
-                row_h = 32
-                for idx in range(comparison_scroll, min(len(run_history), comparison_scroll + 6)):
-                    r = run_history[idx]
-                    y = start_y + (idx - comparison_scroll) * row_h
-                    if idx % 2 == 1:
-                        _fill(screen, PANEL, LEFT_W + 6, y, CENTER_W - 12, row_h, radius=4)
+                # Sắp xếp các thuật toán trong danh sách theo chỉ số đang chọn (nhỏ hơn xếp trước)
+                sorted_history = list(run_history)
+                if chart_metric == 0:
+                    sorted_history.sort(key=lambda r: r.time_seconds if r.success else 9999.0)
+                else:
+                    sorted_history.sort(key=lambda r: r.expanded_nodes if r.success else 999999)
 
-                    _text(screen, r.algorithm_name, self.font_main, WHITE, x, y + 5, max_w=150)
-                    status_txt = "Thành công" if r.success else "Thất bại"
-                    status_color = GREEN if r.success else RED
-                    _text(screen, status_txt, self.font_main, status_color, x + 160, y + 5)
-                    _text(screen, str(r.cost), self.font_main, WHITE, x + 270, y + 5)
-                    _text(screen, str(r.expanded_nodes), self.font_main, WHITE, x + 360, y + 5)
-                    _text(screen, str(r.generated_nodes), self.font_main, WHITE, x + 470, y + 5)
-                    _text(screen, f"{r.time_seconds * 1000:.1f} ms", self.font_main, WHITE, x + 580, y + 5)
+                # ================= BIỂU ĐỒ (BÊN TRÁI) =================
+                vals = []
+                for r in sorted_history:
+                    if chart_metric == 0:
+                        vals.append(r.time_seconds * 1000.0)
+                    else:
+                        vals.append(float(r.expanded_nodes))
+                
+                max_val = max(vals) if vals else 1.0
+                if max_val <= 0:
+                    max_val = 1.0
+
+                chart_x = LEFT_W + 30
+                chart_y = SCREEN_H - 95  # baseline y
+                chart_h = 110            # max height of bar
+                chart_w = 360            # Chiều rộng khu vực biểu đồ bên trái
+
+                N = len(sorted_history)
+                spacing = 8
+                total_spaces = N - 1 if N > 1 else 1
+                bar_w = min(40, max(10, (chart_w - (total_spaces * spacing)) // N))
+
+                pygame.draw.line(screen, BORDER, (chart_x - 10, chart_y), (chart_x + chart_w + 10, chart_y), 2)
+
+                # Helper xác định màu theo nhóm thuật toán
+                def get_algo_color(name):
+                    if algo_groups:
+                        for group in algo_groups:
+                            for a in group["algos"]:
+                                if a["name"] == name:
+                                    gname = group["name"]
+                                    if gname == "Uninformed search": return (80, 140, 220)
+                                    if gname == "Informed search": return (60, 200, 110)
+                                    if gname == "Local search": return (220, 150, 50)
+                                    if gname == "Searching in complex environments": return (180, 100, 220)
+                                    if gname == "Constraint satisfaction problems": return (240, 100, 150)
+                                    if gname == "Adversarial search": return (210, 65, 65)
+                    return (150, 155, 170)
+
+                for idx, r in enumerate(sorted_history):
+                    val = vals[idx]
+                    h = int((val / max_val) * chart_h)
+                    bx = chart_x + idx * (bar_w + spacing)
+                    by = chart_y - h
+
+                    col = get_algo_color(r.algorithm_name)
+                    _fill(screen, col, bx, by, bar_w, h, radius=3)
+                    _outline(screen, BORDER, bx, by, bar_w, h, radius=3)
+
+                    # Hiển thị số nhỏ trên đầu cột
+                    val_str = f"{val:.1f}" if chart_metric == 0 else f"{int(val)}"
+                    _text(screen, val_str, self.font_small, WHITE, bx + (bar_w - self.font_small.size(val_str)[0]) // 2, by - 16)
+
+                    # Tên thuật toán xoay 45 độ
+                    short_name = r.algorithm_name.replace("Search", "S.").replace("Graph ", "").replace("Observable", "Obs.")
+                    txt_img = self.font_small.render(short_name, True, WHITE)
+                    txt_rot = pygame.transform.rotate(txt_img, 45)
+                    screen.blit(txt_rot, (bx + (bar_w - txt_rot.get_width()) // 2, chart_y + 4))
+
+                # ================= BẢNG DANH SÁCH (BÊN PHẢI) =================
+                table_x = divider_x + 12
+                table_y = BOARD_H + 48
+                row_h = 24
+                max_rows = 9
+
+                # Header bảng bên phải
+                _text(screen, "Hạng & Thuật toán", self.font_stats_header, GRAY, table_x, table_y)
+                _text(screen, "Thời gian", self.font_stats_header, GRAY, table_x + 140, table_y)
+                _text(screen, "Số nút", self.font_stats_header, GRAY, table_x + 205, table_y)
+                pygame.draw.line(screen, BORDER, (table_x, table_y + 20), (LEFT_W + CENTER_W - 12, table_y + 20), 1)
+
+                start_row_y = table_y + 24
+                # Giới hạn scroll
+                max_sc = max(0, len(sorted_history) - max_rows)
+                comparison_scroll = min(comparison_scroll, max_sc)
+
+                for i in range(comparison_scroll, min(len(sorted_history), comparison_scroll + max_rows)):
+                    r = sorted_history[i]
+                    y = start_row_y + (i - comparison_scroll) * row_h
+
+                    # Nền xen kẽ
+                    if i % 2 == 1:
+                        _fill(screen, PANEL, table_x - 5, y - 2, CENTER_W - (table_x - LEFT_W) - 8, row_h, radius=3)
+
+                    # Vẽ Rank và Tên
+                    rank_str = f"#{i+1} "
+                    r_w = _text(screen, rank_str, self.font_small, ORANGE, table_x, y)
+                    _text(screen, r.algorithm_name, self.font_main, WHITE, table_x + r_w, y, max_w=125)
+
+                    # Trạng thái và giá trị cụ thể
+                    if r.success:
+                        time_str = f"{r.time_seconds * 1000:.1f}ms"
+                        nodes_str = f"{r.expanded_nodes}"
+                        _text(screen, time_str, self.font_small, GREEN, table_x + 140, y)
+                        _text(screen, nodes_str, self.font_small, WHITE, table_x + 205, y)
+                    else:
+                        _text(screen, "Thất bại", self.font_small, RED, table_x + 140, y)
+                        _text(screen, "-", self.font_small, GRAY, table_x + 205, y)
 
 
     def _draw_right(self, screen, log_lines, log_scroll, is_analysis_mode=False, active_log_idx=None):

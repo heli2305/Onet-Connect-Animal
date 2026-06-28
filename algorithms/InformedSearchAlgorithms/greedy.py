@@ -3,7 +3,7 @@ import itertools
 from algorithms.base import SearchLogger, reconstruct_path
 
 def greedy(initial_state):
-    logger = SearchLogger("Greedy (FF)")
+    logger = SearchLogger("Greedy")
     came_from = {initial_state: None}
     counter = itertools.count()
     frontier = []
@@ -35,19 +35,20 @@ def greedy(initial_state):
         prev = came_from.get(state)
         if prev:
             _, (r1, c1, r2, c2) = prev
-            action_part = f"({r1},{c1})-({r2},{c2}) | "
+            action_part = f"Nối:({r1},{c1})-({r2},{c2}) | "
         else:
             action_part = ""
 
+        actions = state.get_actions()
         logger.log(
-            f"[Pop] {action_part}h={h_val:.2f} | Fr:{len(frontier)}",
+            f"[Mở rộng] {action_part}h={h_val:.2f} | Fron:{len(frontier)} | Reached:{len(visited)} | Child:{len(actions)}",
             state=state
         )
 
         if state.is_goal():
             logger.log(f"[Xong] Tìm thấy! Đã duyệt:{logger.expanded_nodes}")
-            states, actions = reconstruct_path(came_from, state)
-            return logger.finalize(True, actions, states, cost=len(actions))
+            states, actions_path = reconstruct_path(came_from, state)
+            return logger.finalize(True, actions_path, states, cost=len(actions_path))
 
         for action in state.get_actions():
             child = state.apply_action(action)
