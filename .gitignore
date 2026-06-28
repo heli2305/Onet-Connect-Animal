@@ -147,3 +147,7 @@ cython_debug/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Agent customization rules
+.agents/
+

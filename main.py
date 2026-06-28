@@ -29,7 +29,7 @@ def run_astar(state):
     return astar(state)
 
 def run_backtracking(state):
-    return backtracking_search(state.board)
+    return backtracking_search(state)
 
 ALGO_GROUPS = [
     {
