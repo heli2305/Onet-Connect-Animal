@@ -6,7 +6,11 @@ MIN_PLAYER = -1
 
 
 def evaluate_state(state, player):
+    if state.is_goal():
+        return 9999 if player == MAX_PLAYER else -9999
     available = len(state.get_actions())
+    if available == 0:
+        return -9999 if player == MAX_PLAYER else 9999
     return available if player == MAX_PLAYER else -available
 
 
@@ -59,6 +63,8 @@ def alpha_beta_search_full(initial_state: GameState, depth_limit=3):
     logger.log(f"[Alpha-Beta] Bắt đầu | {initial_state.board.num_remaining_tiles() // 2} cặp", state=initial_state.board)
     while not current_state.is_goal():
         res = alpha_beta_search(current_state, depth_limit=depth_limit)
+        logger.expanded_nodes += res.expanded_nodes
+        logger.generated_nodes += res.generated_nodes
         if not res.success or not res.actions:
             logger.log("[Thất bại] Bị kẹt.", state=current_state.board)
             return logger.finalize(False, actions_taken, [], len(actions_taken))

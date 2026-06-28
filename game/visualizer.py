@@ -110,12 +110,13 @@ class Visualizer:
     def draw(self, screen, state, selected_cell, path_cells, path_animal_id,
              result, log_lines, log_scroll,
              algo_groups, selected_group_idx, selected_algo_idx, opened_group, is_running,
-             is_analysis_mode=False, analysis_step=0, active_log_idx=None):
+             is_analysis_mode=False, analysis_step=0, active_log_idx=None,
+             active_bottom_tab=0, run_history=None, comparison_scroll=0):
 
         screen.fill(BG)
         self._draw_left(screen, algo_groups, selected_group_idx, selected_algo_idx, opened_group, is_running, result, is_analysis_mode, analysis_step)
         self._draw_board(screen, state, selected_cell, path_cells, path_animal_id)
-        self._draw_bottom(screen, state, result)
+        self._draw_bottom(screen, state, result, active_bottom_tab, run_history, comparison_scroll)
         self._draw_right(screen, log_lines, log_scroll, is_analysis_mode, active_log_idx)
 
 
@@ -250,53 +251,107 @@ class Visualizer:
         _outline(screen, BORDER, LEFT_W, 0, CENTER_W, BOARD_H)
 
 
-    def _draw_bottom(self, screen, state, result):
+    def _draw_bottom(self, screen, state, result, active_bottom_tab=0, run_history=None, comparison_scroll=0):
+        run_history = run_history or []
         _fill(screen, PANEL2, LEFT_W, BOARD_H, CENTER_W, BOTTOM_H)
         _outline(screen, BORDER, LEFT_W, BOARD_H, CENTER_W, BOTTOM_H)
         pygame.draw.line(screen, BORDER,
                          (LEFT_W, BOARD_H), (LEFT_W + CENTER_W, BOARD_H))
 
-        _text(screen, "KẾT QUẢ CHẠY",
-              self.font_title, GRAY, LEFT_W + 12, BOARD_H + 12)
+        tab1_rect = pygame.Rect(LEFT_W + 12, BOARD_H + 10, 150, 28)
+        tab2_rect = pygame.Rect(LEFT_W + 12 + 160, BOARD_H + 10, 150, 28)
+
+        tab1_color = PANEL if active_bottom_tab == 0 else PANEL2
+        tab2_color = PANEL if active_bottom_tab == 1 else PANEL2
+
+        _fill(screen, tab1_color, tab1_rect.x, tab1_rect.y, tab1_rect.w, tab1_rect.h, radius=4)
+        _outline(screen, BORDER, tab1_rect.x, tab1_rect.y, tab1_rect.w, tab1_rect.h, radius=4)
+        _text(screen, "Chi tiết", self.font_btn_small, WHITE, tab1_rect.x + 45, tab1_rect.y + 5)
+
+        _fill(screen, tab2_color, tab2_rect.x, tab2_rect.y, tab2_rect.w, tab2_rect.h, radius=4)
+        _outline(screen, BORDER, tab2_rect.x, tab2_rect.y, tab2_rect.w, tab2_rect.h, radius=4)
+        _text(screen, "So sánh", self.font_btn_small, WHITE, tab2_rect.x + 45, tab2_rect.y + 5)
+
         pygame.draw.line(screen, BORDER,
-                         (LEFT_W + 4, BOARD_H + 38),
-                         (LEFT_W + CENTER_W - 4, BOARD_H + 38))
+                         (LEFT_W + 4, BOARD_H + 42),
+                         (LEFT_W + CENTER_W - 4, BOARD_H + 42))
 
-        if result:
-            stats = [
-                ("Thuật toán",    result.algorithm_name),
-                ("Kết quả",       "Thành công" if result.success else "Thất bại"),
-                ("Số bước",       str(result.cost)),
-                ("Nodes mở rộng", str(result.expanded_nodes)),
-                ("Nodes sinh ra", str(result.generated_nodes)),
-                ("Thời gian",     f"{result.time_seconds * 1000:.1f} ms"),
-            ]
-            col_w = CENTER_W // 3
-            for i, (label, value) in enumerate(stats):
-                col = i % 3
-                row = i // 3
-                x  = LEFT_W + 12 + col * col_w
-                yy = BOARD_H + 54 + row * 80
+        if active_bottom_tab == 0:
+            if result:
+                stats = [
+                    ("Thuật toán",    result.algorithm_name),
+                    ("Kết quả",       "Thành công" if result.success else "Thất bại"),
+                    ("Số bước",       str(result.cost)),
+                    ("Nodes mở rộng", str(result.expanded_nodes)),
+                    ("Nodes sinh ra", str(result.generated_nodes)),
+                    ("Thời gian",     f"{result.time_seconds * 1000:.1f} ms"),
+                ]
+                col_w = CENTER_W // 3
+                for i, (label, value) in enumerate(stats):
+                    col = i % 3
+                    row = i // 3
+                    x  = LEFT_W + 12 + col * col_w
+                    yy = BOARD_H + 54 + row * 80
 
-                _text(screen, label, self.font_stats_label, GRAY, x, yy)
+                    _text(screen, label, self.font_stats_label, GRAY, x, yy)
 
-                if "Thành" in value:
-                    val_color = GREEN
-                elif "Thất" in value:
-                    val_color = RED
-                else:
-                    val_color = WHITE
+                    if "Thành" in value:
+                        val_color = GREEN
+                    elif "Thất" in value:
+                        val_color = RED
+                    else:
+                        val_color = WHITE
 
-                _text(screen, value, self.font_stats_val, val_color, x, yy + 18)
+                    _text(screen, value, self.font_stats_val, val_color, x, yy + 18)
 
+            else:
+                board      = state.board
+                pairs_left = board.num_remaining_tiles() // 2
+                _text(screen,
+                      f"Bàn {board.rows}×{board.cols}  |  "
+                      f"Cặp còn lại: {pairs_left}  |  "
+                      f"Chọn thuật toán và nhấn Chạy AI",
+                      self.font_stats_desc, GRAY, LEFT_W + 12, BOARD_H + 54)
         else:
-            board      = state.board
-            pairs_left = board.num_remaining_tiles() // 2
-            _text(screen,
-                  f"Bàn {board.rows}×{board.cols}  |  "
-                  f"Cặp còn lại: {pairs_left}  |  "
-                  f"Chọn thuật toán và nhấn Chạy AI",
-                  self.font_stats_desc, GRAY, LEFT_W + 12, BOARD_H + 54)
+            if len(run_history) > 6:
+                ind = f"Cuộn để xem (+{len(run_history) - 6})"
+                _text(screen, ind, self.font_small, GRAY, LEFT_W + CENTER_W - 140, BOARD_H + 16)
+
+            x = LEFT_W + 12
+            header_y = BOARD_H + 52
+            _text(screen, "Thuật toán", self.font_stats_header, GRAY, x, header_y)
+            _text(screen, "Trạng thái", self.font_stats_header, GRAY, x + 160, header_y)
+            _text(screen, "Số bước", self.font_stats_header, GRAY, x + 270, header_y)
+            _text(screen, "Nodes mở", self.font_stats_header, GRAY, x + 360, header_y)
+            _text(screen, "Nodes sinh", self.font_stats_header, GRAY, x + 470, header_y)
+            _text(screen, "Thời gian", self.font_stats_header, GRAY, x + 580, header_y)
+
+            pygame.draw.line(screen, BORDER,
+                             (LEFT_W + 4, BOARD_H + 74),
+                             (LEFT_W + CENTER_W - 4, BOARD_H + 74))
+
+            if not run_history:
+                _text(screen, "Chưa có dữ liệu so sánh. Hãy chọn thuật toán và nhấn Chạy AI.",
+                      self.font_stats_desc, GRAY, LEFT_W + 12, BOARD_H + 85)
+            else:
+                max_sc = max(0, len(run_history) - 6)
+                comparison_scroll = min(comparison_scroll, max_sc)
+                start_y = BOARD_H + 80
+                row_h = 32
+                for idx in range(comparison_scroll, min(len(run_history), comparison_scroll + 6)):
+                    r = run_history[idx]
+                    y = start_y + (idx - comparison_scroll) * row_h
+                    if idx % 2 == 1:
+                        _fill(screen, PANEL, LEFT_W + 6, y, CENTER_W - 12, row_h, radius=4)
+
+                    _text(screen, r.algorithm_name, self.font_main, WHITE, x, y + 5, max_w=150)
+                    status_txt = "Thành công" if r.success else "Thất bại"
+                    status_color = GREEN if r.success else RED
+                    _text(screen, status_txt, self.font_main, status_color, x + 160, y + 5)
+                    _text(screen, str(r.cost), self.font_main, WHITE, x + 270, y + 5)
+                    _text(screen, str(r.expanded_nodes), self.font_main, WHITE, x + 360, y + 5)
+                    _text(screen, str(r.generated_nodes), self.font_main, WHITE, x + 470, y + 5)
+                    _text(screen, f"{r.time_seconds * 1000:.1f} ms", self.font_main, WHITE, x + 580, y + 5)
 
 
     def _draw_right(self, screen, log_lines, log_scroll, is_analysis_mode=False, active_log_idx=None):

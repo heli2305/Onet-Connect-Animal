@@ -25,6 +25,7 @@ from algorithms.ConstraintSatisfactionProblems.backtracking import backtracking_
 from algorithms.ConstraintSatisfactionProblems.feedforward import feedforward_search
 from algorithms.LocalSearch.hill_climbing import hill_climbing_search
 from algorithms.AdversarialSearch.alpha_beta import alpha_beta_search_full
+from algorithms.SearchingInComplexEnvironments.and_or import and_or_search
 
 # DANH SÁCH THUẬT TOÁN
 
@@ -78,20 +79,22 @@ ALGO_GROUPS = [
         ]
     },
     {
-        "name": "Searching in complex environments",
-        "algos": []
+    "name": "Searching in complex environments",
+    "algos": [
+        {"name": "AND-OR Graph Search", "func": and_or_search}
+    ]
     },
     {
         "name": "Constraint satisfaction problems",
         "algos": [
-            {"name": "Backtracking (CSP)", "func": run_backtracking},
-            {"name": "Feedforward", "func": run_feedforward}
+            {"name": "Backtracking", "func": run_backtracking},
+            {"name": "Forward Checking", "func": run_feedforward}
         ]
     },
     {
         "name": "Adversarial search",
         "algos": [
-            {"name": "Alpha-Beta Search", "func": run_alpha_beta}
+            {"name": "Alpha-Beta", "func": run_alpha_beta}
         ]
     }
 ]
@@ -122,6 +125,9 @@ def main():
     is_analysis_mode = False 
     analysis_step    = 0     
     search_start_idx = 0     
+    active_bottom_tab = 0
+    run_history = []
+    comparison_scroll = 0
 
     # Log
     log_lines  = ["Chọn thuật toán và nhấn [Chạy AI]."]
@@ -136,8 +142,12 @@ def main():
         nonlocal state, selected_cell, path_cells, path_countdown, seed, path_animal_id
         nonlocal result, anim_queue, anim_timer, log_lines, log_scroll
         nonlocal is_analysis_mode, analysis_step
+        nonlocal run_history, active_bottom_tab, comparison_scroll
         if next_seed:
             seed += 1
+            run_history = []
+            active_bottom_tab = 0
+            comparison_scroll = 0
         state          = make_initial_state(rows=6, cols=6, seed=seed)
         selected_cell  = None
         path_cells     = []
@@ -173,9 +183,10 @@ def main():
         search_start_idx = len(log_lines)
 
         def worker():
-            nonlocal result, anim_queue, log_lines, log_scroll, is_running
+            nonlocal result, anim_queue, log_lines, log_scroll, is_running, run_history
             r = func(state)
             result = r
+            run_history.append(r)
 
             for msg in r.log_messages:
                 log_lines.append(msg)
@@ -218,9 +229,11 @@ def main():
                     stop_search()
 
             if event.type == pygame.MOUSEWHEEL:
-                mx, _ = pygame.mouse.get_pos()
+                mx, my = pygame.mouse.get_pos()
                 if mx > SCREEN_W - RIGHT_W:
                     log_scroll = max(0, log_scroll - event.y * 2)
+                elif LEFT_W < mx < SCREEN_W - RIGHT_W and my > BOARD_H:
+                    comparison_scroll = max(0, comparison_scroll - event.y)
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mx, my = event.pos
@@ -279,6 +292,14 @@ def main():
                         analysis_step = max(0, analysis_step - 1)
                     elif btn_next.collidepoint(mx, my):
                         analysis_step = min(len(result.search_steps) - 1, analysis_step + 1)
+
+                if LEFT_W < mx < SCREEN_W - RIGHT_W and BOARD_H < my < BOARD_H + 38:
+                    tab1_rect = pygame.Rect(LEFT_W + 12, BOARD_H + 10, 150, 28)
+                    tab2_rect = pygame.Rect(LEFT_W + 12 + 160, BOARD_H + 10, 150, 28)
+                    if tab1_rect.collidepoint(mx, my):
+                        active_bottom_tab = 0
+                    elif tab2_rect.collidepoint(mx, my):
+                        active_bottom_tab = 1
 
                 if LEFT_W < mx < SCREEN_W - RIGHT_W and my < BOARD_H:
                     if not is_running and not anim_queue:
@@ -357,7 +378,10 @@ def main():
             is_running,
             is_analysis_mode=is_analysis_mode,
             analysis_step=analysis_step,
-            active_log_idx=active_log_idx
+            active_log_idx=active_log_idx,
+            active_bottom_tab=active_bottom_tab,
+            run_history=run_history,
+            comparison_scroll=comparison_scroll
         )
 
         pygame.display.flip()
