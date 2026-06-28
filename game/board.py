@@ -53,8 +53,7 @@ class Board:
                 for c in range(self.cols):
                     self.board[r][c] = tiles[idx]
                     idx += 1
-            if self._is_solvable():
-                break
+            break
 
     @staticmethod
     def animal_name(type_id: int) -> str:
