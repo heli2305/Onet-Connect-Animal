@@ -20,7 +20,7 @@ from algorithms.InformedSearchAlgorithms.astar import astar
 from algorithms.UninformedSearchAlgorithms.bfs import bfs
 from algorithms.UninformedSearchAlgorithms.dfs import dfs
 from algorithms.InformedSearchAlgorithms.greedy import greedy
-from algorithms.LocalSearch.beam_search import beam_search
+from algorithms.LocalSearch.local_beam import local_beam_search
 from algorithms.ConstraintSatisfactionProblems.backtracking import backtracking_search
 from algorithms.ConstraintSatisfactionProblems.forwardchecking import forwardchecking_search
 from algorithms.LocalSearch.hill_climbing import hill_climbing_search
@@ -43,8 +43,8 @@ def run_astar(state):
 def run_greedy(state):
     return greedy(state)
 
-def run_beam_search(state):
-    return beam_search(state)
+def run_local_beam(state):
+    return local_beam_search(state)
 
 def run_backtracking(state):
     return backtracking_search(state)
@@ -82,7 +82,7 @@ ALGO_GROUPS = [
     {
         "name": "Local search",
         "algos": [
-            {"name": "Beam Search", "func": run_beam_search},
+            {"name": "Local Beam Search", "func": run_local_beam},
             {"name": "Hill Climbing", "func": run_hill_climbing}
         ]
     },
@@ -139,6 +139,8 @@ def main():
     run_history = []
     comparison_scroll = 0
     chart_metric = 0
+    initial_state_for_analysis = state
+
 
     # Log
     log_lines  = ["Chọn thuật toán và nhấn [Chạy AI]."]
@@ -153,13 +155,14 @@ def main():
         nonlocal state, selected_cell, path_cells, path_countdown, seed, path_animal_id
         nonlocal result, anim_queue, anim_timer, log_lines, log_scroll
         nonlocal is_analysis_mode, analysis_step
-        nonlocal run_history, active_bottom_tab, comparison_scroll
+        nonlocal run_history, active_bottom_tab, comparison_scroll, initial_state_for_analysis
         if next_seed:
             seed += 1
             run_history = []
             active_bottom_tab = 0
             comparison_scroll = 0
         state          = make_initial_state(rows=6, cols=6, seed=seed)
+        initial_state_for_analysis = state
         selected_cell  = None
         path_cells     = []
         path_countdown = 0
@@ -443,11 +446,41 @@ def main():
 
         display_state = state
         active_log_idx = None
+        analysis_path_cells = []
+        analysis_path_animal_id = 0
+
         if is_analysis_mode and result and hasattr(result, "search_steps") and result.search_steps:
-            snapshot_board, _ = result.search_steps[analysis_step]
+            snapshot_board, msg = result.search_steps[analysis_step]
             if snapshot_board is not None:
                 from game.state import GameState
                 display_state = GameState(snapshot_board)
+                
+                # Trích xuất hiệu ứng nối thú động trong chế độ phân tích bằng regex
+                import re
+                coord_pattern = re.compile(r"\((\d+)\s*,\s*(\d+)\)[^\(]*\((\d+)\s*,\s*(\d+)\)")
+                match = coord_pattern.search(msg)
+                if match and not ("Bỏ Nối" in msg or "Quay lui" in msg):
+                    r1, c1, r2, c2 = map(int, match.groups())
+                    # Tránh vẽ đường nối trùng lặp nếu bước trước đó có cùng tọa độ
+                    is_duplicate = False
+                    if analysis_step > 0:
+                        _, prev_msg = result.search_steps[analysis_step - 1]
+                        prev_match = coord_pattern.search(prev_msg)
+                        if prev_match:
+                            pr1, pc1, pr2, pc2 = map(int, prev_match.groups())
+                            if (pr1, pc1, pr2, pc2) == (r1, c1, r2, c2):
+                                is_duplicate = True
+                                
+                    if not is_duplicate:
+                        # Khôi phục trạng thái ban đầu của cặp thú để tìm đường nối
+                        val = initial_state_for_analysis.board.get(r1, c1)
+                        if val != 0:
+                            board_prev = snapshot_board.clone()
+                            board_prev.board[r1][c1] = val
+                            board_prev.board[r2][c2] = val
+                            analysis_path_cells = find_path(board_prev, r1, c1, r2, c2)
+                            analysis_path_animal_id = val
+
             active_log_idx = search_start_idx + analysis_step
             visible_lines = (SCREEN_H - 100) // LOG_LINE_H
             log_scroll = max(0, active_log_idx - visible_lines // 2)
@@ -456,9 +489,9 @@ def main():
         viz.draw(
             screen,
             display_state,
-            selected_cell,
-            path_cells,
-            path_animal_id,
+            selected_cell if not is_analysis_mode else None,
+            path_cells if not is_analysis_mode else analysis_path_cells,
+            path_animal_id if not is_analysis_mode else analysis_path_animal_id,
             result,
             log_lines,
             log_scroll,
