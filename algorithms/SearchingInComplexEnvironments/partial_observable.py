@@ -108,5 +108,5 @@ def partial_observable_search(initial_state: GameState):
             logger.log("[Thất bại] Bảng không còn ô ẩn nhưng không tìm được cặp để nối tiếp.", state=GameState(visible_board.clone()))
             return logger.finalize(False, actions_taken, [], len(actions_taken))
             
-    logger.log(f"[Xong] Giải quyết xong bằng {len(actions_taken)} nước đi!")
+    logger.log(f"[Xong] Giải quyết xong bằng {len(actions_taken)} nước đi!", state=GameState(visible_board.clone()))
     return logger.finalize(True, actions_taken, [], len(actions_taken))

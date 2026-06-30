@@ -57,6 +57,10 @@ def or_search(state, path, logger, node_counter, depth=0):
         if sub_plans is not None:
             return {"type": "and", "action": first, "sub_plans": sub_plans}
     else:
+        logger.log(
+            f"[OR] ({r1},{c1})-({r2},{c2}) | depth={depth}",
+            state=state.board
+        )
         sub_plan = or_search(outcomes[0], new_path, logger, node_counter, depth + 1)
         if sub_plan is not None:
             return {"type": "or", "action": first, "sub_plan": sub_plan}
@@ -88,24 +92,32 @@ def and_search(action, outcomes, path, logger, node_counter, depth):
     return plans
 
 
-def describe_plan(plan, indent=0):
-    pad = "  " * indent
+def describe_plan(plan, prefix=""):
     if plan is None:
-        return pad + "(thất bại)"
+        return prefix + "(thất bại)"
+        
     if plan["type"] == "goal":
-        return pad + "[Đạt mục tiêu]"
+        return prefix + "[Đạt mục tiêu]"
+        
     if plan["type"] == "or":
         r1, c1, r2, c2 = plan["action"]
-        return (f"{pad}Nối ({r1},{c1})-({r2},{c2})\n"
-                + describe_plan(plan["sub_plan"], indent + 1))
+        return (prefix + f"Nối ({r1},{c1})-({r2},{c2})\n"
+                + describe_plan(plan["sub_plan"], prefix))
+                
     if plan["type"] == "and":
         r1, c1, r2, c2 = plan["action"]
-        s = f"{pad}Nối ({r1},{c1})-({r2},{c2})\n"
-        labels = ["NẾU đúng ý", "NẾU nhiễu"]
-        for label, sp in zip(labels, plan["sub_plans"]):
-            s += f"{pad}  {label}:\n" + describe_plan(sp, indent + 2) + "\n"
+        s = prefix + f"Nối ({r1},{c1})-({r2},{c2})\n"
+        
+        # Nhánh kết quả đúng ý
+        s += prefix + "|-- [Đúng ý]:\n"
+        s += describe_plan(plan["sub_plans"][0], prefix + "|   ") + "\n"
+        
+        # Nhánh kết quả khi gặp nhiễu
+        s += prefix + "\\-- [Bị nhiễu]:\n"
+        s += describe_plan(plan["sub_plans"][1], prefix + "    ")
         return s
-    return pad + "?"
+        
+    return prefix + "?"
 
 
 def get_executable_actions(plan):
@@ -142,5 +154,8 @@ def and_or_search(initial_state):
             logger.log(line)
 
     actions = get_executable_actions(plan)
-    logger.log(f"[Xong] Plan: {len(actions)} bước thực thi | Nodes={node_counter[0]}")
+    curr = initial_state
+    for act in actions:
+        curr = curr.apply_action(act)
+    logger.log(f"[Xong] Plan: {len(actions)} bước thực thi | Nodes={node_counter[0]}", state=curr)
     return logger.finalize(True, actions=actions, cost=len(actions))

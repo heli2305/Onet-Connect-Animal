@@ -20,7 +20,7 @@ def dfs(initial_state):
         logger.on_expand(state)
 
         if state.is_goal():
-            logger.log(f"[Xong] Tìm thấy sau {logger.expanded_nodes} bước!")
+            logger.log(f"[Xong] Tìm thấy sau {logger.expanded_nodes} bước!", state=state)
             path_states, path_actions = reconstruct_path(came_from, state)
             return logger.finalize(True, path_actions, path_states, cost=len(path_actions))
 

@@ -44,7 +44,7 @@ def bfs(initial_state):
                 came_from[child] = (state, action)
                 
                 if child.is_goal():
-                    logger.log(f"[Xong] Tìm thấy sau {logger.expanded_nodes + 1} bước!")
+                    logger.log(f"[Xong] Tìm thấy sau {logger.expanded_nodes + 1} bước!", state=child)
                     path_states, path_actions = reconstruct_path(came_from, child)
                     return logger.finalize(True, path_actions, path_states, cost=len(path_actions))
                 

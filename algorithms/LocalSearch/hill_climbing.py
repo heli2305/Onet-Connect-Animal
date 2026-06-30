@@ -39,8 +39,6 @@ def hill_climbing_search(initial_state: GameState):
             child = current_state.apply_action(action)
             logger.on_generate(child)
             
-            # Evaluation function: number of next possible connections.
-            # If the neighbor is the goal state, assign it a maximum score.
             if child.is_goal():
                 val = 999999
             else:
@@ -62,5 +60,5 @@ def hill_climbing_search(initial_state: GameState):
         states_visited.append(current_state)
         step += 1
 
-    logger.log(f"[Xong] Giải thành công sau {step} cặp!")
+    logger.log(f"[Xong] Giải thành công sau {step} cặp!", state=current_state)
     return logger.finalize(True, actions_taken, states_visited, len(actions_taken))

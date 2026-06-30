@@ -46,7 +46,7 @@ def greedy(initial_state):
         )
 
         if state.is_goal():
-            logger.log(f"[Xong] Tìm thấy! Đã duyệt:{logger.expanded_nodes}")
+            logger.log(f"[Xong] Tìm thấy! Đã duyệt:{logger.expanded_nodes}", state=state)
             states, actions_path = reconstruct_path(came_from, state)
             return logger.finalize(True, actions_path, states, cost=len(actions_path))
 

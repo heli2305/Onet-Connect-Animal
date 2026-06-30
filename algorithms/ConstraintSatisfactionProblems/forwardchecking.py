@@ -61,7 +61,10 @@ def forwardchecking_search(initial_state: GameState, max_steps=200000):
     solution = backtrack(initial_state, [])
 
     if solution is not None:
-        logger.log(f"[Xong] {len(solution)} cặp gán thành công!")
+        curr = initial_state
+        for act in solution:
+            curr = curr.apply_action(act)
+        logger.log(f"[Xong] {len(solution)} cặp gán thành công!", state=curr)
         return logger.finalize(True, actions=solution, states=[], cost=len(solution))
     else:
         logger.log("[Thất bại] Không tìm được thứ tự xóa hợp lệ.")

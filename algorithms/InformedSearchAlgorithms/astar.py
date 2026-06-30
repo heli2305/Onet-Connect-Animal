@@ -57,7 +57,7 @@ def astar(initial_state: GameState):
         )
 
         if state.is_goal():
-            logger.log(f"[Xong] Tối ưu! {g_n} bước | Đã duyệt:{logger.expanded_nodes}")
+            logger.log(f"[Xong] Tối ưu! {g_n} bước | Đã duyệt:{logger.expanded_nodes}", state=state)
             states, actions = reconstruct_path(came_from, state)
             return logger.finalize(True, actions, states, cost=len(actions))
 

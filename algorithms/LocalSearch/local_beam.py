@@ -22,7 +22,7 @@ def local_beam_search(initial_state, beam_width=5):
         # Kiểm tra đích khi mở rộng các trạng thái trong tầng hiện tại
         for state in current_layer:
             if state.is_goal():
-                logger.log(f"[Xong] Tìm thấy lời giải!")
+                logger.log(f"[Xong] Tìm thấy lời giải!", state=state)
                 states, actions = reconstruct_path(came_from, state)
                 return logger.finalize(True, actions, states, cost=len(actions))
 
